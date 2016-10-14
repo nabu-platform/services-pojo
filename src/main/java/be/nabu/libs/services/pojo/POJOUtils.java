@@ -24,7 +24,7 @@ import be.nabu.libs.types.base.ListCollectionHandlerProvider;
 
 public class POJOUtils {
 	
-	private static final class ServiceInvocationHandler<T> implements InvocationHandler {
+	public static final class ServiceInvocationHandler<T> implements InvocationHandler {
 		private final ExecutionContextProvider executionContextProvider;
 		private final Token token;
 		private final Class<T> javaInterface;
@@ -97,6 +97,19 @@ public class POJOUtils {
 			}
 			throw new IllegalStateException("No service found that implements the method: " + method);
 		}
+
+		public Token getToken() {
+			return token;
+		}
+
+		public Class<T> getJavaInterface() {
+			return javaInterface;
+		}
+
+		public Service[] getServices() {
+			return services;
+		}
+		
 	}
 
 	private static Logger logger = LoggerFactory.getLogger(POJOUtils.class);
