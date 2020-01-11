@@ -8,6 +8,7 @@ import java.util.Set;
 import be.nabu.libs.services.ServiceRuntime;
 import be.nabu.libs.services.api.DefinedService;
 import be.nabu.libs.services.api.ExecutionContext;
+import be.nabu.libs.services.api.ServiceDescription;
 import be.nabu.libs.services.api.ServiceInterface;
 import be.nabu.libs.types.api.DefinedTypeResolver;
 
@@ -17,6 +18,8 @@ public class MethodService implements DefinedService {
 	private Method method;
 	private ServiceInterface serviceInterface;
 	private DefinedTypeResolver definedTypeResolver;
+	private String description;
+	private boolean descriptionResolved;
 	/**
 	 * You can have the service runtime injected into your bean, this is the reflected field where it will be put
 	 */
@@ -88,5 +91,17 @@ public class MethodService implements DefinedService {
 	@Override
 	public String toString() {
 		return "MethodService:" + getId();
+	}
+	
+	@Override
+	public String getDescription() {
+		if (!descriptionResolved) {
+			descriptionResolved = true;
+			ServiceDescription annotation = getMethod().getAnnotation(ServiceDescription.class);
+			if (annotation != null) {
+				description = annotation.description();
+			}
+		}
+		return description;
 	}
 }
