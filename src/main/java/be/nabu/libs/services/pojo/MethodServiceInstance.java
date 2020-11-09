@@ -108,7 +108,12 @@ public class MethodServiceInstance implements ServiceInstance {
 			return response;
 		}
 		catch (Exception e) {
-			throw new ServiceException(e);
+			if (e instanceof ServiceException) {
+				throw (ServiceException) e;
+			}
+			else {
+				throw new ServiceException("JAVA-0", "Method threw exception", e);
+			}
 		}
 	}
 
