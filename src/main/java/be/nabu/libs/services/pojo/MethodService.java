@@ -98,7 +98,7 @@ public class MethodService implements DefinedService {
 		if (!descriptionResolved) {
 			descriptionResolved = true;
 			ServiceDescription annotation = getMethod().getAnnotation(ServiceDescription.class);
-			if (annotation != null) {
+			if (annotation != null && !annotation.description().trim().isEmpty()) {
 				description = annotation.description();
 			}
 		}
