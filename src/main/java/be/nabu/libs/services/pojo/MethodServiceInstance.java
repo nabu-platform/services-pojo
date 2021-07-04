@@ -120,7 +120,7 @@ public class MethodServiceInstance implements ServiceInstance {
 				throw (RuntimeException) e.getCause();
 			}
 			else {
-				throw new ServiceException("JAVA-0", "Method threw exception", e);
+				throw new ServiceException("JAVA-0", "Method " + getDefinition().getMethod() + " threw exception", e);
 			}
 		}
 		catch (Exception e) {
@@ -128,7 +128,7 @@ public class MethodServiceInstance implements ServiceInstance {
 				throw (ServiceException) e;
 			}
 			else {
-				throw new ServiceException("JAVA-0", "Method threw exception", e);
+				throw new ServiceException("JAVA-0", "Method " + getDefinition().getMethod() + " threw exception", e);
 			}
 		}
 	}
