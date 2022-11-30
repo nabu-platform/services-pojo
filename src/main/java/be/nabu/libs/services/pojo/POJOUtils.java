@@ -95,7 +95,9 @@ public class POJOUtils {
 					}
 				}
 			}
-			throw new IllegalStateException("No service found that implements the method: " + method);
+			// we might be using default methods
+			return method.invoke(proxy, args);
+//			throw new IllegalStateException("No service found that implements the method: " + method);
 		}
 
 		public Token getToken() {
