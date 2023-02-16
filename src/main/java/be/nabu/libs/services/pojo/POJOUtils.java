@@ -1,5 +1,8 @@
 package be.nabu.libs.services.pojo;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -21,6 +24,8 @@ import be.nabu.libs.types.TypeUtils;
 import be.nabu.libs.types.api.ComplexContent;
 import be.nabu.libs.types.api.Element;
 import be.nabu.libs.types.base.ListCollectionHandlerProvider;
+import javafx.scene.control.Tooltip;
+import javafx.util.Duration;
 
 public class POJOUtils {
 	
@@ -95,9 +100,31 @@ public class POJOUtils {
 					}
 				}
 			}
-			// we might be using default methods
-			return method.invoke(proxy, args);
-//			throw new IllegalStateException("No service found that implements the method: " + method);
+			if (method.isDefault()) {
+				Method invokeDefault = getInvokeDefault();
+				if (invokeDefault != null) {
+					return invokeDefault.invoke(null, proxy, method, args);
+				}
+				// we don't do the java 8 workaround because it requires reflection that is illegal from java 9 onwards
+				// we generally run 11 LTS anyway, so this should work
+				// once we switch to 17 LTS, the invokedefault should kick in (to be tested)
+				else {
+					for (Class<?> iface : proxy.getClass().getInterfaces()) {
+						MethodHandle special = MethodHandles.lookup().findSpecial(
+                    		iface, 
+                    		method.getName(), 
+                    		MethodType.methodType(method.getReturnType(), method.getParameterTypes()),  
+                			iface
+                		);
+						if (special != null) {
+							return special.bindTo(proxy).invokeWithArguments(args);
+						}
+					}
+
+				}
+				throw new IllegalStateException("No service found that implements the default method: " + method);
+			}
+			throw new IllegalStateException("No service found that implements the method: " + method);
 		}
 
 		public Token getToken() {
@@ -115,6 +142,32 @@ public class POJOUtils {
 	}
 
 	private static Logger logger = LoggerFactory.getLogger(POJOUtils.class);
+	
+	// the java 16 invoke default method (if found)
+	private static Method invokeDefault;
+	private static boolean invokeDefaultResolved;
+	
+	private static Method getInvokeDefault() { 
+		if (!invokeDefaultResolved) {
+			try {
+				// from java 16 onwards, you can use this approach to call default methods
+				// we can't yet mandate java 16 at the time of writing so we do this via reflection
+				Class<?> clazz = Thread.currentThread().getContextClassLoader().loadClass("java.lang.reflect.InvocationHandler");
+				for (Method potentialMethod : clazz.getMethods()) {
+					if (potentialMethod.getName().equals("invokeDefault")) {
+						invokeDefault = potentialMethod;
+					}
+				}
+			}
+			catch (Exception e) {
+				// ignore
+			}
+			finally {
+				invokeDefaultResolved = true;
+			}
+		}
+		return invokeDefault;
+	}
 	
 	public static <T> T newProxy(final Class<T> javaInterface, final Service service, final ExecutionContext fixedContext) {
 		return newProxy(javaInterface, service, new ExecutionContextProvider() {
