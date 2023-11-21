@@ -9,6 +9,7 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,12 +21,12 @@ import be.nabu.libs.services.api.ExecutionContext;
 import be.nabu.libs.services.api.ExecutionContextProvider;
 import be.nabu.libs.services.api.Service;
 import be.nabu.libs.services.api.ServiceInterface;
+import be.nabu.libs.services.api.ServiceResult;
+import be.nabu.libs.services.api.ServiceRunner;
 import be.nabu.libs.types.TypeUtils;
 import be.nabu.libs.types.api.ComplexContent;
 import be.nabu.libs.types.api.Element;
 import be.nabu.libs.types.base.ListCollectionHandlerProvider;
-import javafx.scene.control.Tooltip;
-import javafx.util.Duration;
 
 public class POJOUtils {
 	
@@ -34,11 +35,19 @@ public class POJOUtils {
 		private final Token token;
 		private final Class<T> javaInterface;
 		private Service[] services;
+		
+		// you can set an explicit service runner for e.g. remote execution
+		private ServiceRunner runner;
 
 		private ServiceInvocationHandler(Class<T> javaInterface, ExecutionContextProvider executionContextProvider, Token token, Service...services) {
+			this(javaInterface, executionContextProvider, token, null, services);
+		}
+		
+		private ServiceInvocationHandler(Class<T> javaInterface, ExecutionContextProvider executionContextProvider, Token token, ServiceRunner runner, Service...services) {
 			this.executionContextProvider = executionContextProvider;
 			this.token = token;
 			this.javaInterface = javaInterface;
+			this.runner = runner;
 			this.services = services;
 		}
 
@@ -74,8 +83,15 @@ public class POJOUtils {
 				else {
 					context = executionContextProvider.newExecutionContext(token);
 				}
-				ServiceRuntime serviceRuntime = new ServiceRuntime(service, context);
-				ComplexContent output = serviceRuntime.run(input);
+				ComplexContent output;
+				if (runner != null) {
+					Future<ServiceResult> run = runner.run(service, context, input);
+					output = run.get().getOutput();
+				}
+				else {
+					ServiceRuntime serviceRuntime = new ServiceRuntime(service, context);
+					output = serviceRuntime.run(input);
+				}
 				if (void.class.isAssignableFrom(method.getReturnType()) || Void.class.isAssignableFrom(method.getReturnType()) || output == null) {
 					return null;
 				}
@@ -185,6 +201,11 @@ public class POJOUtils {
 	@SuppressWarnings("unchecked")
 	public static <T> T newProxy(final Class<T> javaInterface, final ExecutionContextProvider executionContextProvider, final Token token, final Service...services) {
 		return (T) Proxy.newProxyInstance(javaInterface.getClassLoader(), new Class [] { javaInterface }, new ServiceInvocationHandler<T>(javaInterface, executionContextProvider, token, services));
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static <T> T newProxy(final Class<T> javaInterface, final ExecutionContextProvider executionContextProvider, final Token token, final ServiceRunner runner, final Service...services) {
+		return (T) Proxy.newProxyInstance(javaInterface.getClassLoader(), new Class [] { javaInterface }, new ServiceInvocationHandler<T>(javaInterface, executionContextProvider, token, runner, services));
 	}
 	
 	@SuppressWarnings("unchecked")
