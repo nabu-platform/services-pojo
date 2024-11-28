@@ -134,7 +134,8 @@ public class MethodServiceInstance implements ServiceInstance {
 			}
 			// any non-checked exception can pass right through...
 			else if (e.getCause() instanceof RuntimeException) {
-				throw (RuntimeException) e.getCause();
+//				throw (RuntimeException) e.getCause();
+				throw new ServiceException("JAVA-0", "Method " + getDefinition().getMethod() + " threw exception", e);
 			}
 			else {
 				throw new ServiceException("JAVA-0", "Method " + getDefinition().getMethod() + " threw exception", e);
